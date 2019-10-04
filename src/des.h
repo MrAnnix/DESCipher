@@ -1,14 +1,14 @@
 /**DESCipher*******************************************************************
   File        des.h
-  
+
   Resume      Data Encryption Standard (DES) implementation in c
-  
+
   See also    des.c
-  
+
   Autor       Raúl San Martín Aniceto
-  
+
   Copyright (c) 2019 Raúl San Martín Aniceto
-  
+
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
 in the Software without restriction, including without limitation the rights
