@@ -49,18 +49,18 @@ const uint8_t key_shift_sizes[] = {1, 1, 2, 2, 2, 2, 2, 2, 1, 2, 2, 2, 2, 2, 2, 
 //PC2 permutation
 const uint8_t PC2[] = {14, 17, 11, 24,  1,  5,
                         3, 28, 15,  6, 21, 10,
-                        23, 19, 12,  4, 26,  8,
-                        16,  7, 27, 20, 13,  2,
-                        41, 52, 31, 37, 47, 55,
-                        30, 40, 51, 45, 33, 48,
-                        44, 49, 39, 56, 34, 53,
-                        46, 42, 50, 36, 29, 32};
+                       23, 19, 12,  4, 26,  8,
+                       16,  7, 27, 20, 13,  2,
+                       41, 52, 31, 37, 47, 55,
+                       30, 40, 51, 45, 33, 48,
+                       44, 49, 39, 56, 34, 53,
+                       46, 42, 50, 36, 29, 32};
 
 //S Boxes                                         
 const uint8_t S1[] = {14,  4, 13,  1,  2, 15, 11,  8,  3, 10,  6, 12,  5,  9,  0,  7,
                        0, 15,  7,  4, 14,  2, 13,  1, 10,  6, 12, 11,  9,  5,  3,  8,
                        4,  1, 14,  8, 13,  6,  2, 11, 15, 12,  9,  7,  3, 10,  5,  0,
-                       15, 12,  8,  2,  4,  9,  1,  7,  5, 11,  3, 14, 10,  0,  6, 13};
+                      15, 12,  8,  2,  4,  9,  1,  7,  5, 11,  3, 14, 10,  0,  6, 13};
 
 const uint8_t S2[] = {15,  1,  8, 14,  6, 11,  3,  4,  9,  7,  2, 13, 12,  0,  5, 10,
                        3, 13,  4,  7, 15,  2,  8, 14, 12,  0,  1, 10,  6,  9, 11,  5,
@@ -127,11 +127,7 @@ const uint8_t initial_message_permutation[] = {58, 50, 42, 34, 26, 18, 10, 2,
                                                61, 53, 45, 37, 29, 21, 13, 5,
                                                63, 55, 47, 39, 31, 23, 15, 7};
 
-int shift_key(uint64_t* key, uint32_t* fpart, uint32_t* spart){
-    
-}
-
-int generate_subkeys(key_set_t *key){
+void generate_subkeys(key_set_t *key){
     //Purgue variables
     key->key56 = 0;
     memset(key->key_split, 0,  2*sizeof(uint64_t));
@@ -145,44 +141,31 @@ int generate_subkeys(key_set_t *key){
             key->key56 |= 1;
     }
     
-    printf("Key PC1 =   %lx\n", key->key56);
-    
-    /*FOR DEBUGGING
-    printf("%lx\n", key->key56);
-    
-    char clave[7] = {0};
-    for(i=0; i<7; i++){
-        clave[i] = (key->key56 >> (8*i)) & 0xFF;
-        printf("%x", clave[i]);
-    }printf("\n");*/
+    //Split the actual mixed key of 56 bits into 2 parts of 28 bits
+    uint32_t c_0 = (key->key56 >> 28) & 0xFFFFFFF;
+    uint32_t d_0 = (key->key56 >>  0) & 0xFFFFFFF;
     
     //Subkeys generation 16 rounds
+    uint64_t merged_key = 0;
+    
     for(i=0; i<16; i++){
-        //Split the actual mixed key of 56 bits into 2 parts of 28 bits
-        key->key_split[0] = (key->key56 >> 28) & 0xFFFFFFF;
-        key->key_split[1] = (key->key56 >>  0) & 0xFFFFFFF;
-        
         //Shift splited keys as key_shift_sizes determines
-        key->key_split[0] = (key->key_split[0] << key_shift_sizes[i])
-                          | (key->key_split[0] >> (28 - key_shift_sizes[i]));
+        c_0 = (c_0 << key_shift_sizes[i]) | (c_0 >> (28 - key_shift_sizes[i]));
+        c_0 &= 0xFFFFFFF;
 
-        key->key_split[1] = (key->key_split[1] << key_shift_sizes[i])
-                          | (key->key_split[1] >> (28 - key_shift_sizes[i]));
+        d_0 = (d_0 << key_shift_sizes[i]) | (d_0 >> (28 - key_shift_sizes[i]));
+        d_0 &= 0xFFFFFFF;
         
         //Merge before shifting to generate new subkey
-        uint64_t merged_key = ((uint64_t)key->key_split[0] << 28) 
-                            | ((uint64_t)key->key_split[1] <<  0);
-
-        printf("%lx\n", merged_key);
-        break;
+        merged_key = ((uint64_t)c_0 << 28) 
+                   | ((uint64_t)d_0 <<  0);
+        
         //Apply PC2 to the merged key and generate the i_th subkey
         int j;
         for(j=0; j<48; j++){
-            key->subkey[j] <<= 1;
-            if(merged_key & (1 << PC2[j-1]))
-                key->subkey[j] |= 1;
+            key->subkey[i] <<= 1;
+            if(merged_key >> (56 - PC2[j]) & 1)
+                key->subkey[i] |= 1;
         }
-
-
     }
 }               
