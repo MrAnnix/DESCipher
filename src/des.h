@@ -37,6 +37,6 @@ typedef struct {
 	uint64_t subkey[16];
 } key_set_t;
 
-int generate_subkeys(key_set_t *key);
+void generate_subkeys(key_set_t *key);
 
 #endif
