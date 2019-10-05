@@ -35,7 +35,6 @@ SOFTWARE.
 typedef struct {
 	uint64_t key64;
     uint64_t key56;
-    uint32_t key_split[2];
 	uint64_t subkey[16];
 } key_set_t;
 

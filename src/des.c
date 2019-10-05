@@ -128,11 +128,6 @@ const uint8_t initial_message_permutation[] = {58, 50, 42, 34, 26, 18, 10, 2,
                                                63, 55, 47, 39, 31, 23, 15, 7};
 
 void generate_subkeys(key_set_t *key){
-    //Purgue variables
-    key->key56 = 0;
-    memset(key->key_split, 0,  2*sizeof(uint64_t));
-    memset(key->subkey,    0, 16*sizeof(uint64_t));
-    
     //First apply PC1 to mix the key
     int i;
     for(i=0; i<56; i++){
