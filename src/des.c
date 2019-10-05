@@ -128,17 +128,19 @@ const uint8_t initial_message_permutation[] = {58, 50, 42, 34, 26, 18, 10, 2,
                                                63, 55, 47, 39, 31, 23, 15, 7};
 
 void generate_subkeys(key_set_t *key){
+    uint64_t key56 = 0;
+    
     //First apply PC1 to mix the key
     int i;
     for(i=0; i<56; i++){
-        key->key56 <<= 1;
+        key56 <<= 1;
         if(key->key64 >> (64 - PC1[i]) & 1)
-            key->key56 |= 1;
+            key56 |= 1;
     }
     
     //Split the actual mixed key of 56 bits into 2 parts of 28 bits
-    uint32_t c_0 = (key->key56 >> 28) & 0xFFFFFFF;
-    uint32_t d_0 = (key->key56 >>  0) & 0xFFFFFFF;
+    uint32_t c_0 = (key56 >> 28) & 0xFFFFFFF;
+    uint32_t d_0 = (key56 >>  0) & 0xFFFFFFF;
     
     //Subkeys generation 16 rounds
     uint64_t merged_key = 0;
