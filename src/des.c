@@ -118,29 +118,34 @@ const uint8_t right_sub_message_permutation[] = {16,  7, 20, 21,
                                                  19, 13, 30,  6,
                                                  22, 11,  4, 25};
 
-const uint8_t initial_message_permutation[] ={58, 50, 42, 34, 26, 18, 10, 2,
-                                              60, 52, 44, 36, 28, 20, 12, 4,
-                                              62, 54, 46, 38, 30, 22, 14, 6,
-                                              64, 56, 48, 40, 32, 24, 16, 8,
-                                              57, 49, 41, 33, 25, 17,  9, 1,
-                                              59, 51, 43, 35, 27, 19, 11, 3,
-                                              61, 53, 45, 37, 29, 21, 13, 5,
-                                              63, 55, 47, 39, 31, 23, 15, 7};
+const uint8_t initial_message_permutation[] = {58, 50, 42, 34, 26, 18, 10, 2,
+                                               60, 52, 44, 36, 28, 20, 12, 4,
+                                               62, 54, 46, 38, 30, 22, 14, 6,
+                                               64, 56, 48, 40, 32, 24, 16, 8,
+                                               57, 49, 41, 33, 25, 17,  9, 1,
+                                               59, 51, 43, 35, 27, 19, 11, 3,
+                                               61, 53, 45, 37, 29, 21, 13, 5,
+                                               63, 55, 47, 39, 31, 23, 15, 7};
 
 int shift_key(uint64_t* key, uint32_t* fpart, uint32_t* spart){
     
 }
 
 int generate_subkeys(key_set_t *key){
+    //Purgue variables
+    key->key56 = 0;
+    memset(key->key_split, 0,  2*sizeof(uint64_t));
+    memset(key->subkey,    0, 16*sizeof(uint64_t));
+    
     //First apply PC1 to mix the key
     int i;
     for(i=0; i<56; i++){
         key->key56 <<= 1;
-        if(key->key64 & (1 << PC1[i-1]))
+        if(key->key64 >> (64 - PC1[i]) & 1)
             key->key56 |= 1;
     }
-
-    key->key56 = 0xFFFFFFFAAAAAAA;
+    
+    printf("Key PC1 =   %lx\n", key->key56);
     
     /*FOR DEBUGGING
     printf("%lx\n", key->key56);
@@ -158,16 +163,16 @@ int generate_subkeys(key_set_t *key){
         key->key_split[1] = (key->key56 >>  0) & 0xFFFFFFF;
         
         //Shift splited keys as key_shift_sizes determines
-        //key->key_split[0] = (key->key_split[0] << key_shift_sizes[i])
-         //                 | (key->key_split[0] >> (28 - key_shift_sizes[i]));
+        key->key_split[0] = (key->key_split[0] << key_shift_sizes[i])
+                          | (key->key_split[0] >> (28 - key_shift_sizes[i]));
 
-        //key->key_split[1] = (key->key_split[1] << key_shift_sizes[i])
-          //                | (key->key_split[1] >> (28 - key_shift_sizes[i]));
+        key->key_split[1] = (key->key_split[1] << key_shift_sizes[i])
+                          | (key->key_split[1] >> (28 - key_shift_sizes[i]));
         
-        uint64_t merged_key = ((key->key_split[0] << 28) & 0x00FFFFFFF0000000)
-                            | ((key->key_split[1] <<  0) & 0x000000000FFFFFFF);
+        //Merge before shifting to generate new subkey
+        uint64_t merged_key = ((uint64_t)key->key_split[0] << 28) 
+                            | ((uint64_t)key->key_split[1] <<  0);
 
-        printf("%lx\n", key->key56);
         printf("%lx\n", merged_key);
         break;
         //Apply PC2 to the merged key and generate the i_th subkey

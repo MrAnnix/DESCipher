@@ -39,6 +39,8 @@ int main(int argc, char** argv){
     uint8_t clave_str[9] = "holahola";
     memcpy(&key.key64, clave_str, 8);
     
-    printf("%s\n", clave_str);
+    key.key64 = 0x133457799BBCDFF1;
+    
+    printf("Key     = %lx\n", key.key64);
     generate_subkeys(&key);
 }
