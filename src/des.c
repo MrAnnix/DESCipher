@@ -164,10 +164,10 @@ int generate_subkeys(key_set_t *key){
         //key->key_split[1] = (key->key_split[1] << key_shift_sizes[i])
           //                | (key->key_split[1] >> (28 - key_shift_sizes[i]));
         
-        uint64_t merged_key = (key->key_split[0] << 28) | (key->key_split[1] <<  0);
+        uint64_t merged_key = ((key->key_split[0] << 28) & 0x00FFFFFFF0000000)
+                            | ((key->key_split[1] <<  0) & 0x000000000FFFFFFF);
 
-        printf("%lx\n", key->key56);
-        printf("%lx\n", merged_key);
+        printf("%lx", merged_key);
         break;
         //Apply PC2 to the merged key and generate the i_th subkey
         int j;
