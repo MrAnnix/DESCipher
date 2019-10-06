@@ -109,14 +109,14 @@ const uint8_t message_expansion[] = {32,  1,  2,  3,  4,  5,
                                      28, 29, 30, 31, 32,  1};
                             
 //F function final permutation
-const uint8_t right_sub_message_permutation[] = {16,  7, 20, 21,
-                                                 29, 12, 28, 17,
-                                                  1, 15, 23, 26,
-                                                  5, 18, 31, 10,
-                                                  2,  8, 24, 14,
-                                                 32, 27,  3,  9,
-                                                 19, 13, 30,  6,
-                                                 22, 11,  4, 25};
+const uint8_t right_block_permutation[] = {16,  7, 20, 21,
+                                           29, 12, 28, 17,
+                                            1, 15, 23, 26,
+                                            5, 18, 31, 10,
+                                            2,  8, 24, 14,
+                                           32, 27,  3,  9,
+                                           19, 13, 30,  6,
+                                           22, 11,  4, 25};
 
 const uint8_t initial_permutation[] = {58, 50, 42, 34, 26, 18, 10, 2,
                                        60, 52, 44, 36, 28, 20, 12, 4,
@@ -139,23 +139,23 @@ void generate_subkeys(key_set_t* key){
     }
     
     //Split the actual mixed key of 56 bits into 2 parts of 28 bits
-    uint32_t c_0 = (key56 >> 28) & 0xFFFFFFF;
-    uint32_t d_0 = (key56 >>  0) & 0xFFFFFFF;
+    uint32_t c_n = (key56 >> 28) & 0xFFFFFFF;
+    uint32_t d_n = (key56 >>  0) & 0xFFFFFFF;
     
     //Subkeys generation 16 rounds
     uint64_t merged_key = 0;
     
     for(i=0; i<16; i++){
         //Shift splited keys as key_shift_sizes determines
-        c_0 = (c_0 << key_shift_sizes[i]) | (c_0 >> (28 - key_shift_sizes[i]));
-        c_0 &= 0xFFFFFFF;
+        c_n = (c_n << key_shift_sizes[i]) | (c_n >> (28 - key_shift_sizes[i]));
+        c_n &= 0xFFFFFFF;
 
-        d_0 = (d_0 << key_shift_sizes[i]) | (d_0 >> (28 - key_shift_sizes[i]));
-        d_0 &= 0xFFFFFFF;
+        d_n = (d_n << key_shift_sizes[i]) | (d_n >> (28 - key_shift_sizes[i]));
+        d_n &= 0xFFFFFFF;
         
         //Merge before shifting to generate new subkey
-        merged_key = ((uint64_t)c_0 << 28) 
-                   | ((uint64_t)d_0 <<  0);
+        merged_key = ((uint64_t)c_n << 28) 
+                   | ((uint64_t)d_n <<  0);
         
         //Apply PC2 to the merged key and generate the i_th subkey
         int j;
@@ -179,8 +179,99 @@ void process_block(uint64_t* input_block, uint64_t* processed_block, key_set_t* 
     printf("%lx\n", processed_block[0]);
     
     //Split the actual mixed input block (64 bits) into 2 parts of 32 bits
-    uint32_t l_0 = (processed_block[0] >> 32) & 0xFFFFFFFF;
-    uint32_t r_0 = (processed_block[0] >>  0) & 0xFFFFFFFF;
+    uint32_t l_n = (processed_block[0] >> 32) & 0xFFFFFFFF;
+    uint32_t r_n = (processed_block[0] >>  0) & 0xFFFFFFFF;
     
-    
+    //The whole magic
+    int j;
+    for(j=0; j<16; j++){
+        //Expansion of the right side
+        uint64_t expanded_block = 0;
+        for(i=0; i<48; i++){
+            expanded_block <<= 1;
+            if(r_n >> (64 - message_expansion[i]) & 1)
+                expanded_block |= 1;
+        }
+        
+        expanded_block ^= key->subkey[j];
+        
+        //Apply S box substitition
+        //Split the expanded block into 8 parts of 6 bits
+        uint8_t b1, b2, b3, b4, b5, b6, b7, b8;
+        b1 = (expanded_block >> 6*7) & 0x3F;
+        b2 = (expanded_block >> 6*6) & 0x3F;
+        b3 = (expanded_block >> 6*5) & 0x3F;
+        b4 = (expanded_block >> 6*4) & 0x3F;
+        b5 = (expanded_block >> 6*3) & 0x3F;
+        b6 = (expanded_block >> 6*2) & 0x3F;
+        b7 = (expanded_block >> 6*1) & 0x3F;
+        b8 = (expanded_block >> 6*0) & 0x3F;
+        
+        uint8_t central_bits, fnl_bits;
+        
+        //Substitution for part 1
+        central_bits = (b1>>1) & 0x0F;
+        fnl_bits = (b1 & 1) | ((b1 << 4) & 2);
+        b1 = S1[central_bits + 16*fnl_bits];
+        
+        //Substitution for part 2
+        central_bits = (b2>>1) & 0x0F;
+        fnl_bits = (b2 & 1) | ((b2 >> 4) & 2);
+        b2 = S2[central_bits + 16*fnl_bits];
+        
+        //Substitution for part 3
+        central_bits = (b3>>1) & 0x0F;
+        fnl_bits = (b3 & 1) | ((b3 >> 4) & 2);
+        b3 = S3[central_bits + 16*fnl_bits];
+        
+        //Substitution for part 4
+        central_bits = (b4>>1) & 0x0F;
+        fnl_bits = (b4 & 1) | ((b4 >> 4) & 2);
+        b4 = S4[central_bits + 16*fnl_bits];
+        
+        //Substitution for part 5
+        central_bits = (b5>>1) & 0x0F;
+        fnl_bits = (b5 & 1) | ((b5 >> 4) & 2);
+        b5 = S5[central_bits + 16*fnl_bits];
+        
+        //Substitution for part 6
+        central_bits = (b6>>1) & 0x0F;
+        fnl_bits = (b6 & 1) | ((b6 >> 4) & 2);
+        b6 = S6[central_bits + 16*fnl_bits];
+        
+        //Substitution for part 7
+        central_bits = (b7>>1) & 0x0F;
+        fnl_bits = (b7 & 1) | ((b7 >> 4) & 2);
+        b7 = S7[central_bits + 16*fnl_bits];
+        
+        //Substitution for part 8
+        central_bits = (b8>>1) & 0x0F;
+        fnl_bits = (b8 & 1) | ((b8 >> 4) & 2);
+        b8 = S8[central_bits + 16*fnl_bits];
+        
+        //Merge all parts
+        uint32_t merged = ((uint32_t)b1 << 4*7)
+                        | ((uint32_t)b2 << 4*6)
+                        | ((uint32_t)b3 << 4*5)
+                        | ((uint32_t)b4 << 4*4)
+                        | ((uint32_t)b5 << 4*3)
+                        | ((uint32_t)b6 << 4*2)
+                        | ((uint32_t)b7 << 4*1)
+                        | ((uint32_t)b8 << 4*0);
+        
+        //Final block permutation
+        uint32_t _r_n = 0;       
+        for(i=0; i<32; i++){
+            _r_n <<= 1;
+            if(merged >> (32 - right_block_permutation[i]) & 1)
+                _r_n |= 1;
+        }
+        
+        //The new value for the right side is the final permutation XOR left side
+        _r_n ^= l_n;
+        //The new value for the left side is the previous value of the right side
+        l_n = r_n;
+        
+        r_n = _r_n;
+    }
 }
