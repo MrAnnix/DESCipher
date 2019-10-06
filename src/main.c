@@ -42,4 +42,14 @@ int main(int argc, char** argv){
     key.key64 = 0x133457799BBCDFF1;//Overwrite key
     
     generate_subkeys(&key);
+    
+    uint64_t message[] = {0x0123456789ABCDEF,
+                          0x727DA00BCA5A84EE,
+                          0x47F269A4D6438190,
+                          0x9DD52F78F5358499,
+                          0x828AC9B453E0E653};
+    
+    uint64_t out[5] = {0};
+    
+    process_block(message, out, &key, 1);
 }

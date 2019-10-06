@@ -39,4 +39,6 @@ typedef struct {
 
 void generate_subkeys(key_set_t *key);
 
+void process_block(uint64_t* input_block, uint64_t* processed_block, key_set_t* key, uint8_t mode);
+
 #endif

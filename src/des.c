@@ -118,16 +118,16 @@ const uint8_t right_sub_message_permutation[] = {16,  7, 20, 21,
                                                  19, 13, 30,  6,
                                                  22, 11,  4, 25};
 
-const uint8_t initial_message_permutation[] = {58, 50, 42, 34, 26, 18, 10, 2,
-                                               60, 52, 44, 36, 28, 20, 12, 4,
-                                               62, 54, 46, 38, 30, 22, 14, 6,
-                                               64, 56, 48, 40, 32, 24, 16, 8,
-                                               57, 49, 41, 33, 25, 17,  9, 1,
-                                               59, 51, 43, 35, 27, 19, 11, 3,
-                                               61, 53, 45, 37, 29, 21, 13, 5,
-                                               63, 55, 47, 39, 31, 23, 15, 7};
+const uint8_t initial_permutation[] = {58, 50, 42, 34, 26, 18, 10, 2,
+                                       60, 52, 44, 36, 28, 20, 12, 4,
+                                       62, 54, 46, 38, 30, 22, 14, 6,
+                                       64, 56, 48, 40, 32, 24, 16, 8,
+                                       57, 49, 41, 33, 25, 17,  9, 1,
+                                       59, 51, 43, 35, 27, 19, 11, 3,
+                                       61, 53, 45, 37, 29, 21, 13, 5,
+                                       63, 55, 47, 39, 31, 23, 15, 7};
 
-void generate_subkeys(key_set_t *key){
+void generate_subkeys(key_set_t* key){
     uint64_t key56 = 0;
     
     //First apply PC1 to mix the key
@@ -165,4 +165,22 @@ void generate_subkeys(key_set_t *key){
                 key->subkey[i] |= 1;
         }
     }
-}               
+}
+
+void process_block(uint64_t* input_block, uint64_t* processed_block, key_set_t* key, uint8_t mode){
+    //Apply the initial permutation to the input block
+    int i;
+    for(i=0; i<64; i++){
+        processed_block[0] <<= 1;
+        if(input_block[0] >> (64 - initial_permutation[i]) & 1)
+            processed_block[0] |= 1;
+    }
+    
+    printf("%lx\n", processed_block[0]);
+    
+    //Split the actual mixed input block (64 bits) into 2 parts of 32 bits
+    uint32_t l_0 = (processed_block[0] >> 32) & 0xFFFFFFFF;
+    uint32_t r_0 = (processed_block[0] >>  0) & 0xFFFFFFFF;
+    
+    
+}
